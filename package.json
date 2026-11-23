@@ -1,0 +1,9 @@
+{
+  "name": "gestao-tarefas",
+  "version": "1.0.0",
+  "description": "API REST e site Web de um Sistema de Gestão de Tarefas (banco em memória)",
+  "main": "src/server.js",
+  "scripts": { "start": "node src/server.js" },
+  "license": "MIT",
+  "dependencies": { "express": "^4.19.2", "swagger-ui-express": "^5.0.1", "yaml": "^2.5.0" }
+}

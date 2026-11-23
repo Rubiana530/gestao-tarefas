@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas</title>
+<style>
+:root{--bg:#eef1f4;--card:#fff;--ink:#17212b;--mute:#5d6b79;--line:#d5dce3;--acc:#0b6b5d;--acc-ink:#fff;--alta:#b3261e;--media:#9a6700;--baixa:#3b6e8f;--erro:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#10171d;--card:#18222b;--ink:#e8edf1;--mute:#9aa9b6;--line:#2c3a46;--acc:#3fb5a1;--acc-ink:#07201b;--alta:#ff8a80;--media:#e3b341;--baixa:#7fb7d9;--erro:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:28px 16px 64px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font:700 2rem/1.1 Georgia,"Times New Roman",serif;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{background:var(--acc);color:var(--acc-ink);border:0;border-radius:6px;padding:9px 16px;font-weight:600;cursor:pointer}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.link{background:none;border:0;color:var(--mute);padding:4px 8px;cursor:pointer;text-decoration:underline}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.filtros{display:grid;grid-template-columns:1fr 170px 170px;gap:8px;margin:20px 0 12px}
+@media (max-width:600px){.filtros{grid-template-columns:1fr}}
+input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+#msg{min-height:1.5em;margin:4px 0 10px;color:var(--erro);font-weight:600}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+li.t{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--baixa);border-radius:6px;padding:14px 16px}
+li.t.alta{border-left-color:var(--alta)} li.t.media{border-left-color:var(--media)}
+li.t.concluida h2{text-decoration:line-through;color:var(--mute)}
+h2{font-size:1.1rem;margin:0 0 2px}
+.desc{margin:0 0 10px;color:var(--mute)}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.ctrl label{display:grid;font-size:.8rem;color:var(--mute);gap:2px}
+.ctrl select,.ctrl input{width:auto;padding:5px 8px}
+.ctrl .fim{margin-left:auto;display:flex;gap:4px}
+.atraso{color:var(--alta);font-weight:600;font-size:.85rem}
+.vazio{text-align:center;color:var(--mute);padding:36px 0}
+dialog{border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:min(520px,92vw);padding:22px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin:0 0 12px;font:700 1.3rem Georgia,serif}
+dialog label{display:grid;gap:3px;margin-bottom:12px;font-weight:600;font-size:.9rem}
+.linha{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#erroForm{color:var(--erro);font-weight:600;min-height:1.4em;margin:0 0 8px}
+.acoes{display:flex;justify-content:flex-end;gap:8px}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Minhas tarefas</h1><button class="btn" id="nova">Nova tarefa</button></header>
+<div class="filtros" role="search">
+  <input id="q" type="search" placeholder="Pesquisar por título ou descrição" aria-label="Pesquisar tarefas">
+  <select id="fStatus" aria-label="Filtrar por status"><option value="">Todos os status</option><option value="pendente">Pendente</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option></select>
+  <select id="fPrio" aria-label="Filtrar por prioridade"><option value="">Todas as prioridades</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select>
+</div>
+<div id="msg" role="alert"></div>
+<ul id="lista"></ul>
+</main>
+
+<dialog id="dlg">
+<form id="form" method="dialog">
+  <h3 id="dlgTitulo">Nova tarefa</h3>
+  <label>Título<input id="titulo" required maxlength="120"></label>
+  <label>Descrição<textarea id="descricao" rows="3" required></textarea></label>
+  <div class="linha">
+    <label>Prioridade<select id="prioridade" required><option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option></select></label>
+    <label>Prazo<input id="prazo" type="date"></label>
+  </div>
+  <p id="erroForm" role="alert"></p>
+  <div class="acoes"><button type="button" class="btn sec" id="cancelar">Cancelar</button><button class="btn" id="salvar">Salvar tarefa</button></div>
+</form>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const NOME = { pendente: 'Pendente', em_andamento: 'Em andamento', concluida: 'Concluída', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+let editandoId = null, tarefaAtual = null;
+
+async function api(url, opts = {}) {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (res.status === 204) return null;
+  const corpo = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(corpo.erro || 'Erro inesperado'); e.detalhes = corpo.detalhes; throw e; }
+  return corpo;
+}
+const mostrarErro = (e) => { $('#msg').textContent = [e.message, ...(e.detalhes || [])].join(' — '); };
+const hoje = () => new Date().toISOString().slice(0, 10);
+
+function el(tag, props = {}, ...filhos) {
+  const n = Object.assign(document.createElement(tag), props);
+  n.append(...filhos); return n;
+}
+function seletor(rotulo, valores, atual, onChange) {
+  const s = el('select'); valores.forEach(v => s.append(new Option(NOME[v], v, false, v === atual)));
+  s.onchange = () => onChange(s.value, s, atual);
+  return el('label', {}, rotulo, s);
+}
+
+async function acao(fn) { $('#msg').textContent = ''; try { await fn(); } catch (e) { mostrarErro(e); } await carregar(); }
+
+function cartao(t) {
+  const li = el('li', { className: `t ${t.prioridade} ${t.status}` });
+  const atrasada = t.prazo && t.prazo < hoje() && t.status !== 'concluida';
+  const data = el('input', { type: 'date', value: t.prazo || '', min: t.criadaEm.slice(0, 10) });
+  const id = t._id;
+  data.onchange = () => acao(() => api(`/api/tarefas/${id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: data.value || null }) }));
+  const ctrl = el('div', { className: 'ctrl' },
+    seletor('Status', ['pendente', 'em_andamento', 'concluida'], t.status, (v) => acao(() => api(`/api/tarefas/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: v }) }))),
+    seletor('Prioridade', ['alta', 'media', 'baixa'], t.prioridade, (v) => acao(() => api(`/api/tarefas/${id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: v }) }))),
+    el('label', {}, 'Prazo', data),
+    el('div', { className: 'fim' },
+      el('button', { className: 'btn link', textContent: 'Editar', onclick: () => abrirForm(t) }),
+      el('button', { className: 'btn link', textContent: 'Excluir', onclick: () => { if (confirm(`Excluir "${t.titulo}"?`)) acao(() => api(`/api/tarefas/${id}`, { method: 'DELETE' })); } })));
+  li.append(el('h2', {}, t.titulo), el('p', { className: 'desc' }, t.descricao));
+  if (atrasada) li.append(el('div', { className: 'atraso' }, 'Prazo vencido'));
+  li.append(ctrl);
+  return li;
+}
+
+async function carregar() {
+  const p = new URLSearchParams();
+  if ($('#q').value.trim()) p.set('q', $('#q').value.trim());
+  if ($('#fStatus').value) p.set('status', $('#fStatus').value);
+  if ($('#fPrio').value) p.set('prioridade', $('#fPrio').value);
+  try {
+    const lista = await api('/api/tarefas?' + p);
+    const ul = $('#lista'); ul.replaceChildren();
+    if (!lista.length) ul.append(el('li', { className: 'vazio' }, p.toString() ? 'Nenhuma tarefa encontrada para esses filtros.' : 'Você ainda não tem tarefas. Clique em "Nova tarefa" para começar.'));
+    lista.forEach(t => ul.append(cartao(t)));
+  } catch (e) { mostrarErro(e); }
+}
+
+function abrirForm(t) {
+  tarefaAtual = t || null; editandoId = t ? t._id : null;
+  $('#dlgTitulo').textContent = t ? 'Editar tarefa' : 'Nova tarefa';
+  $('#titulo').value = t?.titulo || ''; $('#descricao').value = t?.descricao || '';
+  $('#prioridade').value = t?.prioridade || 'media'; $('#prazo').value = t?.prazo || '';
+  $('#prazo').min = t ? t.criadaEm.slice(0, 10) : hoje();
+  $('#erroForm').textContent = ''; $('#dlg').showModal(); $('#titulo').focus();
+}
+
+$('#form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const corpo = { titulo: $('#titulo').value, descricao: $('#descricao').value, prioridade: $('#prioridade').value, prazo: $('#prazo').value || null };
+  try {
+    await (editandoId ? api(`/api/tarefas/${editandoId}`, { method: 'PUT', body: JSON.stringify(corpo) }) : api('/api/tarefas', { method: 'POST', body: JSON.stringify(corpo) }));
+    $('#dlg').close(); $('#msg').textContent = ''; carregar();
+  } catch (e) { $('#erroForm').textContent = [e.message, ...(e.detalhes || [])].join(' — '); }
+});
+$('#cancelar').onclick = () => $('#dlg').close();
+$('#nova').onclick = () => abrirForm();
+let timer; $('#q').oninput = () => { clearTimeout(timer); timer = setTimeout(carregar, 250); };
+$('#fStatus').onchange = $('#fPrio').onchange = carregar;
+carregar();
+</script>
+</body>
+</html>

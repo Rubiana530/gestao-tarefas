@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: API de Gestão de Tarefas
+  version: 1.0.0
+  description: |
+    API REST para cadastrar, consultar, editar, excluir e pesquisar tarefas,
+    além de alterar status, prioridade e prazo. Os dados ficam em memória.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Tarefas
+paths:
+  /api/tarefas:
+    post:
+      tags: [Tarefas]
+      summary: Cadastrar tarefa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TarefaCriacao' }
+      responses:
+        '201': { description: Tarefa criada, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '400': { $ref: '#/components/responses/Invalido' }
+    get:
+      tags: [Tarefas]
+      summary: Consultar e pesquisar tarefas
+      description: Sem filtros, lista todas. `q` pesquisa no título e na descrição.
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Texto a pesquisar }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/Status' } }
+        - { name: prioridade, in: query, schema: { $ref: '#/components/schemas/Prioridade' } }
+      responses:
+        '200': { description: Lista de tarefas, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Tarefa' } } } } }
+  /api/tarefas/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    get:
+      tags: [Tarefas]
+      summary: Consultar tarefa por id
+      responses:
+        '200': { description: Tarefa encontrada, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '404': { $ref: '#/components/responses/NaoEncontrada' }
+    put:
+      tags: [Tarefas]
+      summary: Editar tarefa
+      description: Se `status` for omitido, o status atual é mantido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TarefaCriacao' }
+      responses:
+        '200': { description: Tarefa atualizada, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '400': { $ref: '#/components/responses/Invalido' }
+        '404': { $ref: '#/components/responses/NaoEncontrada' }
+        '409': { $ref: '#/components/responses/Conflito' }
+    delete:
+      tags: [Tarefas]
+      summary: Excluir tarefa
+      responses:
+        '204': { description: Tarefa excluída }
+        '404': { $ref: '#/components/responses/NaoEncontrada' }
+  /api/tarefas/{id}/status:
+    patch:
+      tags: [Tarefas]
+      summary: Alterar status
+      description: Uma tarefa `concluida` não pode voltar para `pendente` (reabra como `em_andamento`).
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [status], properties: { status: { $ref: '#/components/schemas/Status' } } }
+      responses:
+        '200': { description: Status alterado, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '400': { $ref: '#/components/responses/Invalido' }
+        '404': { $ref: '#/components/responses/NaoEncontrada' }
+        '409': { $ref: '#/components/responses/Conflito' }
+  /api/tarefas/{id}/prioridade:
+    patch:
+      tags: [Tarefas]
+      summary: Alterar prioridade
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [prioridade], properties: { prioridade: { $ref: '#/components/schemas/Prioridade' } } }
+      responses:
+        '200': { description: Prioridade alterada, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '400': { $ref: '#/components/responses/Invalido' }
+        '404': { $ref: '#/components/responses/NaoEncontrada' }
+  /api/tarefas/{id}/prazo:
+    patch:
+      tags: [Tarefas]
+      summary: Alterar prazo (data de entrega)
+      description: O prazo não pode ser anterior à data de criação. Envie `null` para remover.
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [prazo], properties: { prazo: { type: string, format: date, nullable: true, example: '2026-12-15' } } }
+      responses:
+        '200': { description: Prazo alterado, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '400': { $ref: '#/components/responses/Invalido' }
+        '404': { $ref: '#/components/responses/NaoEncontrada' }
+components:
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string }, description: Identificador da tarefa }
+  schemas:
+    Prioridade: { type: string, enum: [baixa, media, alta] }
+    Status: { type: string, enum: [pendente, em_andamento, concluida] }
+    TarefaCriacao:
+      type: object
+      required: [titulo, descricao, prioridade]
+      properties:
+        titulo: { type: string, example: Revisar contrato }
+        descricao: { type: string, example: Conferir cláusulas de prazo e multa }
+        prioridade: { $ref: '#/components/schemas/Prioridade' }
+        status: { allOf: [ { $ref: '#/components/schemas/Status' } ], description: 'Padrão: pendente' }
+        prazo: { type: string, format: date, nullable: true, example: '2026-12-15' }
+    Tarefa:
+      allOf:
+        - $ref: '#/components/schemas/TarefaCriacao'
+        - type: object
+          properties:
+            _id: { type: string, format: uuid }
+            criadaEm: { type: string, format: date-time }
+            atualizadaEm: { type: string, format: date-time }
+    Erro:
+      type: object
+      properties:
+        erro: { type: string, example: Tarefa não encontrada }
+        detalhes: { type: array, items: { type: string } }
+  responses:
+    Invalido: { description: Dados inválidos, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+    NaoEncontrada: { description: Tarefa não encontrada, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+    Conflito: { description: Transição de status não permitida, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
