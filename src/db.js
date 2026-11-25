@@ -14,7 +14,8 @@ class MemoryCollection {
   async deleteOne(_id) { return this.docs.delete(_id); }
 }
 
-const dia = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };
+const dataLocal = (d = new Date()) => { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const dia = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return dataLocal(d); };
 const ts = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString(); };
 
 async function seed(col) {

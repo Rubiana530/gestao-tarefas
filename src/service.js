@@ -8,12 +8,14 @@ class HttpError extends Error { constructor(status, mensagem, detalhes) { super(
 const dataValida = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 const textoOk = (v) => typeof v === 'string' && v.trim().length > 0;
 const agora = () => new Date().toISOString();
+// Datas comparadas pelo dia local (e não em UTC), para não adiantar o dia à noite.
+const dataLocal = (d = new Date()) => { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 // Regra 4: a data de entrega não pode ser anterior à data de criação.
 function validarPrazo(prazo, criadaEm, erros) {
   if (prazo === null || prazo === undefined) return;
   if (!dataValida(prazo)) { erros.push('prazo deve estar no formato AAAA-MM-DD'); return; }
-  if (prazo < criadaEm.slice(0, 10)) erros.push('prazo não pode ser anterior à data de criação da tarefa');
+  if (prazo < dataLocal(criadaEm)) erros.push('prazo não pode ser anterior à data de criação da tarefa');
 }
 
 // Regra 5: uma tarefa concluída não volta automaticamente para pendente.

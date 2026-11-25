@@ -99,7 +99,8 @@ async function api(url, opts = {}) {
   return corpo;
 }
 const mostrarErro = (e) => { $('#msg').textContent = [e.message, ...(e.detalhes || [])].join(' — '); };
-const hoje = () => new Date().toISOString().slice(0, 10);
+const dataLocal = (d = new Date()) => { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const hoje = () => dataLocal();
 
 function el(tag, props = {}, ...filhos) {
   const n = Object.assign(document.createElement(tag), props);
@@ -116,7 +117,7 @@ async function acao(fn) { $('#msg').textContent = ''; try { await fn(); } catch 
 function cartao(t) {
   const li = el('li', { className: `t ${t.prioridade} ${t.status}` });
   const atrasada = t.prazo && t.prazo < hoje() && t.status !== 'concluida';
-  const data = el('input', { type: 'date', value: t.prazo || '', min: t.criadaEm.slice(0, 10) });
+  const data = el('input', { type: 'date', value: t.prazo || '', min: dataLocal(t.criadaEm) });
   const id = t._id;
   data.onchange = () => acao(() => api(`/api/tarefas/${id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: data.value || null }) }));
   const ctrl = el('div', { className: 'ctrl' },
@@ -156,7 +157,7 @@ function abrirForm(t) {
   $('#dlgTitulo').textContent = t ? 'Editar tarefa' : 'Nova tarefa';
   $('#titulo').value = t?.titulo || ''; $('#descricao').value = t?.descricao || '';
   $('#prioridade').value = t?.prioridade || 'media'; $('#prazo').value = t?.prazo || '';
-  $('#prazo').min = t ? t.criadaEm.slice(0, 10) : hoje();
+  $('#prazo').min = t ? dataLocal(t.criadaEm) : hoje();
   $('#erroForm').textContent = ''; $('#dlg').showModal(); $('#titulo').focus();
 }
 
