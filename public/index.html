@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas</title>
+<style>
+:root{--bg:#e9eff3;--card:#fff;--ink:#14232e;--mute:#566877;--line:#d3dde5;--band:#12303f;--acc:#0b6b5d;--acc-ink:#fff;--alta:#c0392b;--media:#d98e04;--baixa:#2f7fb0;--erro:#b3261e;--sombra:0 1px 2px rgba(18,48,63,.08),0 6px 18px rgba(18,48,63,.07)}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1419;--card:#16212a;--ink:#e8edf1;--mute:#9aa9b6;--line:#2a3945;--band:#0a1d27;--acc:#3fb5a1;--acc-ink:#07201b;--alta:#ff8a80;--media:#f0b84a;--baixa:#7fb7d9;--erro:#ff8a80;--sombra:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
+.topo{background:var(--band);color:#fff;padding:28px 16px 64px}
+.topo>div,main{max-width:900px;margin:0 auto}
+.topo>div{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+h1{font:700 2.2rem/1.1 Georgia,"Times New Roman",serif;margin:0}
+.sub{margin:6px 0 0;color:#a9c3cf}
+main{padding:0 16px 64px;margin-top:-40px}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{background:var(--acc);color:var(--acc-ink);border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer}
+.topo .btn{background:#fff;color:var(--band)}
+.btn:hover{filter:brightness(.94)}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.link{background:none;border:0;color:var(--mute);padding:4px 8px;text-decoration:underline}
+.btn.link:hover{color:var(--ink)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.resumo div{background:var(--card);border-radius:10px;padding:12px 16px;box-shadow:var(--sombra);border-top:4px solid var(--line)}
+.resumo b{display:block;font:700 1.7rem/1.1 Georgia,serif}
+.resumo span{color:var(--mute);font-size:.88rem}
+.resumo .r-pendente{border-top-color:var(--media)} .resumo .r-em_andamento{border-top-color:var(--baixa)} .resumo .r-concluida{border-top-color:var(--acc)}
+.filtros{display:grid;grid-template-columns:1fr 190px 220px;gap:8px;margin-bottom:12px}
+@media (max-width:640px){.filtros{grid-template-columns:1fr}.resumo b{font-size:1.3rem}}
+input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+#msg{min-height:1.5em;margin:0 0 10px;color:var(--erro);font-weight:600}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+li.t{background:var(--card);border-radius:10px;padding:16px 18px 14px;box-shadow:var(--sombra);border-left:6px solid var(--baixa)}
+li.t.alta{border-left-color:var(--alta)} li.t.media{border-left-color:var(--media)}
+li.t.concluida{opacity:.8}
+li.t.concluida h2{text-decoration:line-through;color:var(--mute)}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+h2{font-size:1.1rem;margin:0}
+.tags{display:flex;gap:6px;flex-shrink:0}
+.tag{font-size:.78rem;font-weight:600;padding:2px 10px;border-radius:99px;border:1px solid currentColor}
+.tag.alta{color:var(--alta)} .tag.media{color:var(--media)} .tag.baixa{color:var(--baixa)}
+.tag.st{color:var(--mute)} .tag.st.concluida{color:var(--acc)} .tag.st.em_andamento{color:var(--baixa)}
+.desc{margin:6px 0 12px;color:var(--mute)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:end;border-top:1px solid var(--line);padding-top:12px}
+.ctrl label{display:grid;font-size:.78rem;color:var(--mute);gap:2px}
+.ctrl select,.ctrl input{width:auto;padding:5px 8px}
+.ctrl .fim{margin-left:auto;display:flex;gap:2px}
+.atraso{display:inline-block;margin-bottom:10px;color:#fff;background:var(--alta);font-weight:600;font-size:.8rem;padding:1px 10px;border-radius:99px}
+.vazio{text-align:center;color:var(--mute);padding:44px 12px;background:var(--card);border-radius:10px;box-shadow:var(--sombra)}
+dialog{border:0;border-radius:12px;background:var(--card);color:var(--ink);width:min(520px,92vw);padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,29,39,.6)}
+dialog h3{margin:0 0 14px;font:700 1.4rem Georgia,serif}
+dialog label{display:grid;gap:4px;margin-bottom:12px;font-weight:600;font-size:.9rem}
+.linha{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#erroForm{color:var(--erro);font-weight:600;min-height:1.4em;margin:0 0 8px}
+.acoes{display:flex;justify-content:flex-end;gap:8px}
+</style>
+</head>
+<body>
+<header class="topo"><div><div><h1>Minhas tarefas</h1><p class="sub">Organize o que precisa ser feito e acompanhe até a conclusão.</p></div><button class="btn" id="nova">Nova tarefa</button></div></header>
+<main>
+<div class="resumo" id="resumo"></div>
+<div class="filtros" role="search">
+  <input id="q" type="search" placeholder="Pesquisar por título ou descrição" aria-label="Pesquisar tarefas">
+  <select id="fStatus" aria-label="Filtrar por status"><option value="">Todos os status</option><option value="pendente">Pendente</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option></select>
+  <select id="fPrio" aria-label="Filtrar por prioridade"><option value="">Todas as prioridades</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select>
+</div>
+<div id="msg" role="alert"></div>
+<ul id="lista"></ul>
+</main>
+
+<dialog id="dlg">
+<form id="form" method="dialog">
+  <h3 id="dlgTitulo">Nova tarefa</h3>
+  <label>Título<input id="titulo" required maxlength="120"></label>
+  <label>Descrição<textarea id="descricao" rows="3" required></textarea></label>
+  <div class="linha">
+    <label>Prioridade<select id="prioridade" required><option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option></select></label>
+    <label>Prazo<input id="prazo" type="date"></label>
+  </div>
+  <p id="erroForm" role="alert"></p>
+  <div class="acoes"><button type="button" class="btn sec" id="cancelar">Cancelar</button><button class="btn" id="salvar">Salvar tarefa</button></div>
+</form>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const NOME = { pendente: 'Pendente', em_andamento: 'Em andamento', concluida: 'Concluída', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+let editandoId = null, tarefaAtual = null;
+
+async function api(url, opts = {}) {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (res.status === 204) return null;
+  const corpo = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(corpo.erro || 'Erro inesperado'); e.detalhes = corpo.detalhes; throw e; }
+  return corpo;
+}
+const mostrarErro = (e) => { $('#msg').textContent = [e.message, ...(e.detalhes || [])].join(' — '); };
+const dataLocal = (d = new Date()) => { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const hoje = () => dataLocal();
+
+function el(tag, props = {}, ...filhos) {
+  const n = Object.assign(document.createElement(tag), props);
+  n.append(...filhos); return n;
+}
+function seletor(rotulo, valores, atual, onChange) {
+  const s = el('select'); valores.forEach(v => s.append(new Option(NOME[v], v, false, v === atual)));
+  s.onchange = () => onChange(s.value, s, atual);
+  return el('label', {}, rotulo, s);
+}
+
+async function acao(fn) { $('#msg').textContent = ''; try { await fn(); } catch (e) { mostrarErro(e); } await carregar(); }
+
+function cartao(t) {
+  const li = el('li', { className: `t ${t.prioridade} ${t.status}` });
+  const atrasada = t.prazo && t.prazo < hoje() && t.status !== 'concluida';
+  const data = el('input', { type: 'date', value: t.prazo || '', min: dataLocal(t.criadaEm) });
+  const id = t._id;
+  data.onchange = () => acao(() => api(`/api/tarefas/${id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: data.value || null }) }));
+  const ctrl = el('div', { className: 'ctrl' },
+    seletor('Status', ['pendente', 'em_andamento', 'concluida'], t.status, (v) => acao(() => api(`/api/tarefas/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: v }) }))),
+    seletor('Prioridade', ['alta', 'media', 'baixa'], t.prioridade, (v) => acao(() => api(`/api/tarefas/${id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: v }) }))),
+    el('label', {}, 'Prazo', data),
+    el('div', { className: 'fim' },
+      el('button', { className: 'btn link', textContent: 'Editar', onclick: () => abrirForm(t) }),
+      el('button', { className: 'btn link', textContent: 'Excluir', onclick: () => { if (confirm(`Excluir "${t.titulo}"?`)) acao(() => api(`/api/tarefas/${id}`, { method: 'DELETE' })); } })));
+  li.append(el('div', { className: 'cab' }, el('h2', {}, t.titulo), el('div', { className: 'tags' }, el('span', { className: `tag st ${t.status}`, textContent: NOME[t.status] }), el('span', { className: `tag ${t.prioridade}`, textContent: NOME[t.prioridade] }))), el('p', { className: 'desc' }, t.descricao));
+  if (atrasada) li.append(el('div', { className: 'atraso' }, 'Prazo vencido'));
+  li.append(ctrl);
+  return li;
+}
+
+function resumir(todas) {
+  const n = (st) => todas.filter(t => t.status === st).length;
+  $('#resumo').replaceChildren(...[['pendente', 'Pendentes'], ['em_andamento', 'Em andamento'], ['concluida', 'Concluídas']].map(([st, nome]) => el('div', { className: 'r-' + st }, el('b', {}, String(n(st))), el('span', {}, nome))));
+}
+
+async function carregar() {
+  const p = new URLSearchParams();
+  if ($('#q').value.trim()) p.set('q', $('#q').value.trim());
+  if ($('#fStatus').value) p.set('status', $('#fStatus').value);
+  if ($('#fPrio').value) p.set('prioridade', $('#fPrio').value);
+  try {
+    const [lista, todas] = await Promise.all([api('/api/tarefas?' + p), api('/api/tarefas')]);
+    resumir(todas);
+    const ul = $('#lista'); ul.replaceChildren();
+    if (!lista.length) ul.append(el('li', { className: 'vazio' }, p.toString() ? 'Nenhuma tarefa encontrada para esses filtros.' : 'Você ainda não tem tarefas. Clique em "Nova tarefa" para começar.'));
+    lista.forEach(t => ul.append(cartao(t)));
+  } catch (e) { mostrarErro(e); }
+}
+
+function abrirForm(t) {
+  tarefaAtual = t || null; editandoId = t ? t._id : null;
+  $('#dlgTitulo').textContent = t ? 'Editar tarefa' : 'Nova tarefa';
+  $('#titulo').value = t?.titulo || ''; $('#descricao').value = t?.descricao || '';
+  $('#prioridade').value = t?.prioridade || 'media'; $('#prazo').value = t?.prazo || '';
+  $('#prazo').min = t ? dataLocal(t.criadaEm) : hoje();
+  $('#erroForm').textContent = ''; $('#dlg').showModal(); $('#titulo').focus();
+}
+
+$('#form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const corpo = { titulo: $('#titulo').value, descricao: $('#descricao').value, prioridade: $('#prioridade').value, prazo: $('#prazo').value || null };
+  try {
+    await (editandoId ? api(`/api/tarefas/${editandoId}`, { method: 'PUT', body: JSON.stringify(corpo) }) : api('/api/tarefas', { method: 'POST', body: JSON.stringify(corpo) }));
+    $('#dlg').close(); $('#msg').textContent = ''; carregar();
+  } catch (e) { $('#erroForm').textContent = [e.message, ...(e.detalhes || [])].join(' — '); }
+});
+$('#cancelar').onclick = () => $('#dlg').close();
+$('#nova').onclick = () => abrirForm();
+let timer; $('#q').oninput = () => { clearTimeout(timer); timer = setTimeout(carregar, 250); };
+$('#fStatus').onchange = $('#fPrio').onchange = carregar;
+carregar();
+</script>
+</body>
+</html>
